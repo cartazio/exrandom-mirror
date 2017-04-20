@@ -1,0 +1,23 @@
+EXAMPLES = \
+	chisq_test.exe \
+	compare_times.exe \
+	count_bits.exe \
+	discrete_count_bits.exe \
+	exrandom_test.exe \
+	hist_data.exe \
+	sample_discrete_normal.exe \
+	sample_distributions.exe \
+	sample_exponential.exe \
+	sample_normal.exe \
+	sample_uniform.exe \
+	simple_discrete_normal.exe \
+	simple_exponential.exe \
+	simple_normal.exe \
+	simple_uniform.exe \
+	tabulate_normals.exe
+
+CPPFLAGS = /I../include /EHsc /W4 /O2 /Ob2 /MD
+all: $(EXAMPLES)
+
+clean:
+	del *.obj $(EXAMPLES)

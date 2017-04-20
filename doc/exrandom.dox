@@ -1,0 +1,595 @@
+/**  -*- text -*-
+ * \file exrandom.dox
+ * \brief Documentation for ExRandom
+ **********************************************************************/
+
+namespace exrandom {
+/**
+\mainpage Exact Random Distributions
+\author Charles F. F. Karney (charles.karney@sri.com)
+\version 2.1
+\date 2016-02-01
+
+This library provides an implementation of the algorithms described in
+the paper
+- C. F. F. Karney,
+  <a href="https://dx.doi.org/10.1145/2710016">
+  ''Sampling exactly from the normal distribution''</a>,<br>
+  ACM Trans. Math. Software <b>42</b>(1), 3:1&ndash;14 (Jan. 2016).<br>
+  doi:
+  <a href="https://dx.doi.org/10.1145/2710016">10.1145/2710016</a><br>
+  preprint:
+  <a href="http://arxiv.org/abs/1303.6257">arXiv:1303.6257</a>
+.
+It provides classes for sampling exactly from the continuous normal
+and exponential distributions and from the discrete normal distribution
+(given a source of uniformly distribution random digits).  The library
+requires a C++11 compiler and consists only of header files.
+
+It is licensed under the
+<a href="http://www.opensource.org/licenses/MIT">MIT/X11 License</a>;
+see <a href="LICENSE.txt">LICENSE.txt</a> for the terms.
+
+\section download Download
+
+The main project page is at
+- <a href="http://sourceforge.net/projects/exrandom">
+  http://sourceforge.net/projects/exrandom</a>
+
+You can download the library as a tar.gz or a zip file from
+- <a href="http://sourceforge.net/projects/exrandom/files/distrib/exrandom-2.1.tar.gz">
+  exrandom-2.1.tar.gz</a>
+- <a href="http://sourceforge.net/projects/exrandom/files/distrib/exrandom-2.1.zip">
+  exrandom-2.1.zip</a>
+.
+The version of the code included with the
+<a href="http://arxiv.org/abs/1303.6257v1">
+original, March 2013, version of the paper</a> is available at
+- <a href="http://sourceforge.net/projects/exrandom/files/distrib/exrandom-1.0.tar.gz">
+  exrandom-1.0.tar.gz</a>
+.
+
+\section contents Contents
+- \ref example
+- \ref start
+- \ref compile
+- \ref organization
+- \ref urand
+- \ref multiprec
+- \ref mpfr
+- \ref other
+- \ref history
+
+<center>
+Forward to \ref example.
+</center>
+
+\page example Simple examples
+
+<center>
+Forward to \ref start.  Up to \ref contents.
+</center>
+
+Here is how to sample exactly from the normal distribution.  The code is
+\ref simple_normal.cpp
+\include simple_normal.cpp
+
+Compile this code with a C++11 compliant compiler setting the include
+path to the parent of the exrandom directory, e.g.,
+\verbatim
+g++ -o simple_normal -O3 -std=c++11 -I../include simple_normal.cpp
+\endverbatim
+
+Running the resulting program gives, for example,
+\verbatim
+Seed set to 1930225588
+
+Sampling doubles exactly from the unit normal distribution:
+-0.86918 -2.04981 1.62507 0.37086 -0.0259856 0.179536 -1.37951 2.17251
+0.608488 0.700322 -1.26223 0.0148746 -1.10179 0.155343 -0.0498893 -0.298053
+-1.12402 1.1431 0.355696 -0.203227 -1.35181 -0.0228599 -1.4729 -0.333065
+-1.25213 1.47739 -0.159445 1.27897 -0.649038 0.915326 0.0316318 1.33156
+0.135598 -1.1963 1.02445 0.195189 0.0944316 1.89514 0.928068 -0.933905
+0.0120612 0.293793 1.84805 1.12541 -1.44845 0.183437 0.676166 1.68539
+\endverbatim
+
+In this example you can substitute unit_exponential_distribution or
+unit_uniform_distribution for unit_normal_distribution; you can also
+change double, the template parameter for the constructor, to float or
+to long double (or even to a multi-precision floating point type, see
+\ref multiprec).  See \ref simple_exponential.cpp and \ref
+simple_uniform.cpp.
+
+And here is how to sample exactly from the discrete normal distribution.
+The code is \ref simple_discrete_normal.cpp
+\include simple_discrete_normal.cpp
+
+Running this program gives, for example,
+\verbatim
+Seed set to 3530269933
+
+Sampling exactly from the discrete normal distribution,
+  mu = 1/3, sigma = 129/2:
+66 37 -17 107 -108 34 -51 -8 29 -55 31 111 7 -122 36 -43 39 67 31 -65
+-39 106 -11 91 -45 -49 -32 16 -90 53 61 56 -122 46 -37 -53 -39 10 -34 -69
+39 -83 -46 -58 -5 -24 77 -65 51 -38 77 -55 -20 -24 27 -110 119 40 -2 10
+42 53 69 244 -5 2 21 -9 -119 -4 -38 -86 67 -33 -21 115 -121 61 56 19
+66 -30 63 37 19 -38 50 -23 122 -59 3 88 75 66 -15 -107 15 105 -38 85
+\endverbatim
+
+<center>
+Forward to \ref start.  Up to \ref contents.
+</center>
+
+\page start Getting started
+
+<center>
+Back to \ref example.  Forward to \ref compile.  Up to \ref contents.
+</center>
+
+Prerequisites:
+ - a C++ compiler which supports C++11.  The library has been tested
+   with the following compilers
+    - Linux: g++ 4.7 and 4.8 (with the -std=c++0x or -std=c++11 flag)
+    - Windows: Visual Studio 11 and 12
+    - MacOSX: LLVM version 5.1 (with -std=c++11)
+    .
+   All the examples compile with no warning messages on all of these
+   compilers.
+ - a good source of uniform random numbers.  For every day use, I
+   recommend the Mersenne Twister std::mt19937 (reseeded with each use,
+   of course).  Alternatively, if std::random_device is hooked up to a
+   hardware generator (check the value of entropy()), then that can be
+   used.
+
+If you just want to use the library to get at accurate random deviates,
+then you should use the interfaces providing C++11 random distributions.
+These work in exactly the same manner as, for example,
+std::normal_distribution.  The distributions provided are
+ - unit_uniform_distribution samples exactly from the
+   uniform distribution in [0,1].
+ - unit_exponential_distribution samples exactly from the
+   exponential distribution with mean one.
+ - unit_normal_distribution samples exactly from the
+   normal distribution with zero mean and unit variance.
+ - discrete_normal_distribution(mu_num, mu_den, sigma_num,
+   sigma_den) samples from the discrete normal distribution with
+   parameters &mu; = mu_num/mu_den and &sigma; = sigma_num/sigma_den
+ .
+The first three distributions are templated and can return any floating
+point type.  The last distribution returns ints.
+
+The entire library is header-only.  Thus all you have to do is set the
+include path to the parent directory containing the exrandom include
+directory.  Everything is in the exrandom namespace.  So the typical
+invocation is
+\code
+#include <random>
+#include <exrandom/unit_normal_distribution.hpp>
+...
+  auto g = std::mt19937(std::random_device()());
+  exrandom::unit_normal_distribution<double> N;
+  double x = N(g);              // a normal deviate
+  ...
+\endcode
+
+<center>
+Back to \ref example.  Forward to \ref compile.  Up to \ref contents.
+</center>
+
+\page compile Compiling all the examples
+
+<center>
+Back to \ref start.  Forward to \ref organization.  Up to \ref contents.
+</center>
+
+If you're familiar with <a href="http://www.cmake.org">cmake</a>, then
+use this to compile the example programs.  On Linux and MacOSX, the
+commands are, for example,
+\verbatim
+mkdir BUILD
+cd BUILD
+cmake ..
+make
+make test
+examples/simple_normal
+etc.
+\endverbatim
+For Windows they might be
+\verbatim
+mkdir BUILD
+cd BUILD
+cmake -G "Visual Studio 11 Win64" ..
+cmake --build . --config Release
+cmake --build . --config Release --target RUN_TESTS
+examples\Release\simple_normal
+etc.
+\endverbatim
+cmake will attempt to find <a href="http://www.boost.org">Boost</a> and
+<a href="http://www.mpfr.org">MPFR</a> for compiling the programs in the
+multiprec directory (see \ref multiprec).  If necessary, define the
+MPFR_DIR path to point to where MPFR is installed.  Other make targets
+which might be helpful are
+- clean, clean the build directory
+- doc, create the documentation using
+  <a href="http:/www.doxygen.org">doxygen</a>
+- install, install the headers and a cmake config file under
+  ${CMAKE_INSTALL_PREFIX}
+- package_source, create tar and zip files of the distribution
+.
+If you install ExRandom, you can include it in another cmake project by
+\verbatim
+find_package (ExRandom REQUIRED)
+include_directories (${ExRandom_INCLUDE_DIRS})
+\endverbatim
+
+Simple makefiles are provided to compile the programs in the examples
+directory.  For Linux and MacOSX, use
+\verbatim
+cd examples
+make
+./simple_normal
+etc.
+\endverbatim
+On Windows, start, e.g., a "Visual Studio 11 command prompt", and type
+\verbatim
+cd examples
+nmake /f makefile.vc
+.\simple_normal
+etc.
+\endverbatim
+
+<center>
+Back to \ref start.  Forward to \ref organization.  Up to \ref contents.
+</center>
+
+\page organization Code organization
+
+<center>
+Back to \ref compile.  Forward to \ref urand.  Up to \ref contents.
+</center>
+
+The classes defined fall into the following categories
+ - C++11 random distributions
+   - unit_uniform_distribution
+   - unit_exponential_distribution (Algorithm V)
+   - unit_normal_distribution (Algorithm N)
+   - discrete_normal_distribution (Algorithm D)
+   .
+   These offer the simplest interfaces.  The operator() methods of these
+   classes take a random number engine as an argument.
+ - Classes returning u-rands (shorten "distribution" to "dist" in the
+   class names above)
+   - unit_uniform_dist
+   - unit_exponential_dist (Algorithms E and V)
+   - unit_normal_dist (Algorithm N)
+   - discrete_normal_dist (Algorithm D)
+   .
+   These offer the flexibility of returning the random deviate as a
+   u-rand, selecting the base uses for the u-rand, etc.  The C++11
+   random distributions are defined in terms of these.  These classes
+   need a digit generator (see below) passed to them when there are
+   constructed.
+ - The class for the u-rand
+   - u_rand
+   .
+   Besides implementing the simple operations required for u-rands, this
+   class contains a method, u_rand::value, which allows the u-rand to be
+   extracted as a floating-point number, using any rounding mode.  It
+   also provides methods for printing u-rands.  This is constructed with
+   a digit generator.
+ - The class for partially sampling integers from a uniform range
+   - i_rand
+   .
+   This is the integer counterpart to u_rand and is used to improve the
+   efficiency of discrete_normal_dist.  This is constructed with a digit
+   generator.
+ - The digit generators
+   - rand_digit
+   - rand_table
+   .
+   This is the machinery used to convert the results of a random number
+   engine into a stream of random digits.  For diagnostic purposes, it
+   also keeps count of the number of digits produced.  The xxx_dist,
+   u_rand, and i_rand classes are all instantiated with a reference to a
+   digit generator (and frequently they share the same digit generator
+   so that the counts are aggregated).  Most of the methods in these
+   classes then take a random number engine as an argument for the digit
+   generator to use.  Usually the first class, rand_digit, should be
+   used.  This can use any of the C++11 random generator engines as the
+   source of randomness and so works much like
+   std::uniform_int_distribution(0,base-1).  The second class uses ...
+ - A class to allow use of tabulated random numbers in [0,9]
+   - table_gen
+   .
+   This takes a string of digits in the constructor and returns one
+   digit at a time, throwing an exception when the string runs out.
+ - Low level functionality for manipulating bases
+   - digit_arithmetic
+   .
+   This allows the use of base = 2<sup>32</sup> which typically
+   overflows the unsigned type used for digits.  It can also report
+   whether the base is a power of two.
+ - A helper class
+   - aux_info
+   .
+   which isn't really part of the library; but it provides function to
+   return properties of the implemented distributions for use in the
+   testing and diagnostics.
+ - Finally,
+   - unit_normal_kahn (Algorithm K)
+   .
+   uses Kahn's method of sampling from the normal distribution.  This is
+   a possible replacement for unit_normal_dist.  Note however that
+   overflow can occur in this implementation which results in a slight
+   bias in the random deviates.  For this reason, this class is
+   <b>deprecated</b>.
+
+<center>
+Back to \ref compile.  Forward to \ref urand.  Up to \ref contents.
+</center>
+
+\page urand Examples using u-rands
+
+<center>
+Back to \ref organization.  Forward to \ref multiprec.  Up to \ref contents.
+</center>
+
+Here is how to use one of the *_dist classes.  These are <em>not</em>
+C++11 random number distributions.  But they offer the flexibility to
+access the u-rands generated by the algorithms.  For example, the two
+functions to generate normal deviates are unit_normal_dist::generate and
+unit_normal_dist::value.  The skeleton code to create and use these is
+\code
+#include <iostream>
+#include <random>
+#include <exrandom/rand_digit.hpp>
+#include <exrandom/unit_normal_dist.hpp>
+
+...
+  unsigned s = std::random_device()(); // Set seed from random_device
+  std::mt19937 g(s);                   // Initialize URNG
+
+  // Construct a rand_digit, a u_rand, and a unit_normal_dist
+  const unsigned b = 2;
+  exrandom::rand_digit<b> D;
+  exrandom::unit_normal_dist<exrandom::rand_digit<b>> N(D);
+  exrandom::u_rand<exrandom::rand_digit<b>> x(N.digit_generator());
+
+  long long c = D.count();
+  N.generate(g, x);                // Normal generated as u-rand in x
+  std::cout << x << "\n";          // Print the u-rand
+  std::cout << x.value<double>(g); // Extract the double precision value
+  // Alternatively combine the two steps for the next normal deviate
+  std::cout << N.value<double>(g);
+  std::cout << D.count() - c0;     // Number of random digits used
+  ...
+\endcode
+
+A complete example is \ref sample_normal.cpp
+\include sample_normal.cpp
+
+Running this program gives, for example,
+\verbatim
+Sampling from the normal distribution
+Seed set to 237750281
+
+Deviates rounded to floating point with base = 16
+columns are: initial u-rand, rounded float, final u-rand
+-0... = -0.690407 = -0.b0be828...
++0.1... = 0.0713383 = +0.124339d...
+-0... = -0.686044 = -0.afa08bb...
++0.6... = 0.41938 = +0.6b5c7f9...
++0.2... = 0.132118 = +0.21d2840...
+-1.3... = -1.2284 = -1.3a7842...
++0.4... = 0.286089 = +0.493d257...
++0... = 0.91659 = +0.eaa5ab4...
++1.dc... = 1.86227 = +1.dcbdbe...
++0... = 0.0933357 = +0.17e4d90...
+Total number of base 16 digits used = 162
+
+Deviates rounded to fixed point with base = 10 and precision = 6
+columns are: initial u-rand, rounded fixed, final u-rand
++2.9... = +2.906062(+) = +2.9060622...
+-0... = -0.824044(-) = -0.8240438...
++1.0... = +1.010208(-) = +1.0102079...
++0.0... = +0.015557(-) = +0.0155568...
++0... = +0.737249(+) = +0.7372493...
++2.5... = +2.511206(+) = +2.5112060...
++1.3... = +1.319720(-) = +1.3197198...
+-1.1... = -1.194608(+) = -1.1946084...
++0.84... = +0.846072(-) = +0.8460715...
+-0.7... = -0.705696(+) = -0.7056962...
+Total number of base 10 digits used = 241
+\endverbatim
+
+For similar examples using unit_exponential_dist and unit_uniform_dist,
+see \ref sample_exponential.cpp and \ref sample_normal.cpp.
+
+Using discrete_normal_dist, we can similarly obtain the result directly
+as an int or we can obtain the partial sample i_rand object with
+represents a uniform range whose size is a power of the base.  See \ref
+sample_discrete_normal.cpp.
+
+<center>
+Back to \ref organization.  Forward to \ref multiprec.  Up to \ref contents.
+</center>
+
+\page multiprec Multi-precision floating-point types
+
+<center>
+Back to \ref urand.  Forward to \ref mpfr.  Up to \ref contents.
+</center>
+
+u_rand::value supports several multi-precision floating-point types.
+This allows the random number distributions unit_normal_distribution,
+unit_exponential_distribution, and unit_uniform_distribution to be
+realized with RealType set to any of the float-point types.
+
+The libraries you might need are
+- <a href="http://www.boost.org">Boost</a> 1.53 or later
+- <a href="http://gmplib.org">GMP</a> 4.2.3 or later
+- <a href="http://www.mpfr.org">MPFR</a> 3.1.0 or later
+- <a href="http://www.holoborodko.com/pavel/mpfr/">MPFR C++</a>, 3.5.7
+  (June 3, 2014) or later, a header-only interface to MPFR
+.
+The types supported are
+- boost's mpfr_float (requires MPFR), mpf_float (requires GMP),
+  cpp_dec_float, but, in each case, only the varieties with a precision
+  which is fixed at compile time (specified as a non-zero template
+  argument).
+- boost's float128, this requires g++, boost 1.54 or later, and the
+  quadmath library.  In addition, g++ 4.8 (or later) requires
+  the -fext-numeric-literals flag to turn on recognition of the "Q"
+  suffix for this type.
+- MPFR C++ mpfr::mpreal (requires MPFR) which supports a precision which
+  can be set at run time.
+.
+cpp_dec_float is notable in that it is the only floating-point type in
+this list with a radix of 10.
+
+These have been tested under Linux only.
+
+\ref multiprec_test.cpp illustrates the use of unit _normal_distribution
+with these types.
+
+<center>
+Back to \ref urand.  Forward to \ref mpfr.  Up to \ref contents.
+</center>
+
+\page mpfr MPFR functions
+
+<center>
+Back to \ref multiprec.  Forward to \ref other.  Up to \ref contents.
+</center>
+
+Algorithms N and V have been added to
+<a href="http://www.mpfr.org">MPFR</a> and will appear in the next
+release (presumably 3.2.0).  In order to use them, check out the MPFR
+source with
+\verbatim
+svn checkout svn://scm.gforge.inria.fr/svn/mpfr/trunk mpfr
+\endverbatim
+and follow the instructions for configuring, building, and installing it.
+
+The added functions are
+ - mpfr_nrandom (rop, state, rnd_mode) -- Generate a normal deviate with mean 0
+   and variance 1 and round it to the precision of rop according to the given
+   rounding mode.
+ - mpfr_erandom (rop, state, rnd_mode) -- Generate an exponential deviate with
+   mean 1 and round it to the precision of rop according to the given rounding
+   mode.
+
+These are considerably more efficient than unit_normal_distribution and
+unit_exponential_distribution with an MPFR floating-point type
+particular when the precision is large.  Because these routines write
+directly into the memory for a mpfr_t, the CPU time is proportional to
+the precision.  In contrast, u_rand, in order to allow the use of a wide
+range of floating point types, generates high precision floating point
+numbers using a sequence of arithmetic operations whose cost scales as
+the square of the precision.
+
+The program \ref mpfr_times.cpp compares the time for mpfr_nrandom with
+mpfr_grandom, an implementation of polar method for normal sampling
+which appeared in MPFR 3.1.  This (with tx multiplied by 10) is used to
+generate the timing data in Table 2, columns C and D, of the paper.
+Also compared is the time for unit_normal_distribution<mpfr::mpreal>.
+
+<center>
+Back to \ref multiprec.  Forward to \ref other.  Up to \ref contents.
+</center>
+
+\page other Other examples
+
+<center>
+Back to \ref mpfr.  Forward to \ref history.  Up to \ref contents.
+</center>
+
+All of these examples run rather quickly (in a few seconds).  If you are
+studying the behavior of the algorithms, you should probably increase
+the number of iterations in the code.
+- \ref sample_distributions.cpp produces histograms of the supported
+  distributions.
+- \ref tabulate_normals.cpp generating normals in base 10 from the RAND
+  table of random numbers (the data in Table 1 of the paper).
+- \ref compare_times.cpp (with num multiplied by 10) produces the timing
+  data in Table 2, columns A and B, of the paper.
+- \ref hist_data.cpp generates the data used to create Figure 1 of the
+  paper.
+- \ref chisq_test.cpp performs the &chi;<sup>2</sup> test on
+  unit_normal_distribution, unit_exponential_distribution,
+  unit_uniform_distribution, and discrete_normal_distribution.
+- \ref count_bits.cpp compute the cost and toll of the various
+  continuous distributions (with base = 2) and produces histograms of
+  the bit counts.
+- \ref discrete_count_bits.cpp compute the cost and toll of Algorithm D
+  (with base = 2).
+- \ref exrandom_test.cpp run some simple unit tests.
+
+<center>
+Back to \ref mpfr.  Forward to \ref history.  Up to \ref contents.
+</center>
+
+\page history A brief history of the algorithms
+
+<center>
+Back to \ref other.  Up to \ref contents.
+</center>
+
+- June 1949, von Neumann presents Algorithm V.
+- April 1976, Knuth and Yao show how to make Algorithm V exact.
+- 1986, Flajolet and Saheb analyze Algorithm V.
+- October 2006, Algorithm V was added to RandomLib
+  <a href="http://randomlib.sourceforge.net/2006-10">version 2006-10</a>.
+- December 2011, first implementation of an algorithm for exactly
+  sampling from the normal distribution was included in RandomLib
+  <a href="http://randomlib.sourceforge.net/1.2">version 1.2</a>.
+- January 2012, Algorithm N was added to RandomLib
+  <a href="http://randomlib.sourceforge.net/1.3">version 1.3</a>.
+- February 2012, Algorithm E was added to RandomLib
+  <a href="http://randomlib.sourceforge.net/1.4">version 1.4</a>.
+- March 2013, first version of the paper (= exrandom version 1.0).
+- June 2013, Algorithms V and N contributed to
+  <a href="http://www.mpfr.org">MPFR</a>.
+- September 2013, Algorithm D was added to RandomLib
+  <a href="http://randomlib.sourceforge.net/1.7">version 1.7</a>.
+- June 2014, second version of the paper and exrandom
+  <a href="http://exrandom.sourceforge.net/2.0">version 2.0</a>.
+- January 2016, paper published in ACM Trans. Math. Software,
+  doi: <a href="https://dx.doi.org/10.1145/2710016">10.1145/2710016</a>
+- February 2016, exrandom
+  <a href="http://exrandom.sourceforge.net/2.1">version 2.1</a>:
+  - changes to documention and cmake files;
+  - all macro names are prefixed with EXRANDOM_;
+  - EXRANDOM_VERSION and similar macros defined;
+  - add unit tests.
+
+<center>
+Back to \ref other.  Up to \ref contents.
+</center>
+
+\example simple_normal.cpp
+\example simple_exponential.cpp
+\example simple_uniform.cpp
+\example simple_discrete_normal.cpp
+
+\example sample_normal.cpp
+\example sample_exponential.cpp
+\example sample_uniform.cpp
+\example sample_discrete_normal.cpp
+
+\example multiprec_test.cpp
+\example mpfr_times.cpp
+
+\example sample_distributions.cpp
+\example chisq_test.cpp
+\example compare_times.cpp
+\example count_bits.cpp
+\example discrete_count_bits.cpp
+\example hist_data.cpp
+\example tabulate_normals.cpp
+
+\example exrandom_test.cpp
+
+**********************************************************************/
+}
